@@ -91,7 +91,7 @@ DATABASES = {
         'NAME': 'store2',
         'HOST': 'localhost',
         'USER': 'root',
-        'PASSWORD': 'MyPassword',
+        'PASSWORD': '<# e2111088341 #>',
     }
 }
 

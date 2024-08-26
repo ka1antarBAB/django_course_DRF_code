@@ -11,7 +11,9 @@ from django.db.models import Prefetch
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny, DjangoModelPermissions
 
 from .models import Cart, CartItem, Category, Comment, Customer, Order, OrderItem, Product
-from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CategorySerializer, CommentSerializer, CustomerSerializer, OrderCreateSerializer, OrderForAdminSerializer, OrderSerializer, OrderUpdateSerializer, ProductSerializer, UpdateCartItemSerializer
+from .serializers import AddCartItemSerializer, CartItemSerializer, CartSerializer, CategorySerializer, \
+    CommentSerializer, CustomerSerializer, OrderCreateSerializer, OrderForAdminSerializer, OrderSerializer, \
+    OrderUpdateSerializer, ProductSerializer, UpdateCartItemSerializer
 from .filters import ProductFilter
 from .permissions import CustomDjangoModelPermissions, IsAdminOrReadOnly, SendPrivateEmailToCustomerPermission
 from .signals import order_created
@@ -30,14 +32,15 @@ class ProductViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'request': self.request}
-    
+
     def destroy(self, request, pk):
         product = get_object_or_404(
             Product.objects.select_related('category'),
             pk=pk,
         )
         if product.order_items.count() > 0:
-            return Response({'error': 'There is some order items including this product. Please remove them first.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response({'error': 'There is some order items including this product. Please remove them first.'},
+                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
         product.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -50,10 +53,11 @@ class CategoryViewSet(ModelViewSet):
     def delete(self, request, pk):
         category = get_object_or_404(Category.objects.prefetch_related('products'), pk=pk)
         if category.products.count() > 0:
-            return Response({'error': 'There is some products relating this category. Please remove them first.'}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+            return Response({'error': 'There is some products relating this category. Please remove them first.'},
+                            status=status.HTTP_405_METHOD_NOT_ALLOWED)
         category.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
-        
+
 
 class CommentViewSet(ModelViewSet):
     serializer_class = CommentSerializer
@@ -61,10 +65,10 @@ class CommentViewSet(ModelViewSet):
     def get_queryset(self):
         product_pk = self.kwargs['product_pk']
         return Comment.objects.filter(product_id=product_pk).all()
-    
+
     def get_serializer_context(self):
         return {'product_pk': self.kwargs['product_pk']}
-    
+
 
 class CartItemViewSet(ModelViewSet):
     http_method_names = ['get', 'post', 'patch', 'delete']
@@ -79,17 +83,18 @@ class CartItemViewSet(ModelViewSet):
         elif self.request.method == 'PATCH':
             return UpdateCartItemSerializer
         return CartItemSerializer
-    
+
     def get_serializer_context(self):
         return {'cart_pk': self.kwargs['cart_pk']}
 
 
 class CartViewSet(CreateModelMixin,
-                   RetrieveModelMixin,
-                   DestroyModelMixin,
-                   GenericViewSet):
+                  RetrieveModelMixin,
+                  DestroyModelMixin,
+                  GenericViewSet):
     serializer_class = CartSerializer
     queryset = Cart.objects.prefetch_related('items__product').all()
+
 
 class CustomerViewSet(ModelViewSet):
     serializer_class = CustomerSerializer
@@ -121,7 +126,7 @@ class OrderViewSet(ModelViewSet):
         if self.request.method in ['PATCH', 'DELETE']:
             return [IsAdminUser()]
         return [IsAuthenticated()]
-    
+
     def get_queryset(self):
         queryset = Order.objects.prefetch_related(
             Prefetch(
@@ -134,13 +139,13 @@ class OrderViewSet(ModelViewSet):
 
         if user.is_staff:
             return queryset
-        
+
         return queryset.filter(customer__user_id=user.id)
 
     def get_serializer_class(self):
         if self.request.method == 'POST':
             return OrderCreateSerializer
-        
+
         if self.request.method == 'PATCH':
             return OrderUpdateSerializer
 
@@ -148,7 +153,6 @@ class OrderViewSet(ModelViewSet):
             return OrderForAdminSerializer
         return OrderSerializer
 
-    
     def create(self, request, *args, **kwargs):
         create_order_serializer = OrderCreateSerializer(
             data=request.data,
